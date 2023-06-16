@@ -18,11 +18,11 @@ int get_file_stat(struct zip* zip_file, const char* file_name, struct zip_stat* 
 int get_num_files(struct zip* zip_file);
 const char* get_file_name(struct zip* zip_file, int index);
 void close_zip_file(struct zip* zip_file);
-void extraireContenuZIP(struct zip* zip_file, const char* zip_file_path, const char* entry_name);
+void extraireContenuZIP(struct zip* zip_file, const char* zip_file_path, const char* selected_file);
 void afficherContenuZIP(const char* zip_file_path);
 void affichageZIP(const char* zip_file_path);
 void affichageZIPpwd(const char* zip_file_path, const char* password);
-void extraireAvecMotDePasse(const char* zip_file_path, const char* file_name, const char* password);
+void extraireAvecMotDePasse(struct zip* zip_file_path, const char* file_name,const char* selected_file, const char* password);
 
 
 
