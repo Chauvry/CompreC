@@ -6,9 +6,9 @@
 
 
 // Sous-menu pour le choix du mode d'extraction (sans mot de passe, mots de passe connus, bruteforce)
-void sousMenuExtraction(const char* zip_file);
+void sousMenuExtraction(const char* zip_file, const char* password);
 
 // Fonction principale pour afficher le menu et gérer les options
-void afficherMenu(const char* zip_file_path);
+void afficherMenu(const char* zip_file_path, const char* password);
 
 #endif

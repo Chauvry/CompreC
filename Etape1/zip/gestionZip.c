@@ -50,7 +50,7 @@ void close_zip_file(struct zip* zip_file) {
     zip_close(zip_file);
 }
 
-void extraireContenuZIP(struct zip* zip_file, const char* zip_file_path, const char* entry_name) {
+void extraireContenuZIP(struct zip* zip_file, const char* zip_file_path, const char* selected_file) {
     struct zip_file* file;
     struct zip_stat file_info;
 
@@ -58,9 +58,9 @@ void extraireContenuZIP(struct zip* zip_file, const char* zip_file_path, const c
         return;
     }
 
-    int index = zip_name_locate(zip_file, entry_name, 0);
+    int index = zip_name_locate(zip_file, selected_file, 0);
     if (index < 0) {
-        printw("Le contenu '%s' n'a pas été trouvé dans le fichier ZIP.\n", entry_name);
+        printw("Le contenu '%s' n'a pas été trouvé dans le fichier ZIP.\n", selected_file);
         return;
     }
 
@@ -88,7 +88,7 @@ void extraireContenuZIP(struct zip* zip_file, const char* zip_file_path, const c
 
     while ((length = zip_fread(file, buffer, sizeof(buffer))) > 0) {
         if (write(output_fd, buffer, length) < 0) {
-            printw("Erreur lors de l'écriture du contenu '%s' extrait.\n", entry_name);
+            printw("Erreur lors de l'écriture du contenu '%s' extrait.\n", selected_file);
             close(output_fd);
             zip_fclose(file);
             return;
@@ -98,7 +98,7 @@ void extraireContenuZIP(struct zip* zip_file, const char* zip_file_path, const c
     close(output_fd);
     zip_fclose(file);
 
-    printw("Extraction du contenu '%s' terminée.\n", entry_name);
+    printw("Extraction du contenu '%s' terminée.\n", selected_file);
 }
 
 int get_file_stat(struct zip* zip_file, const char* file_name, struct zip_stat* file_stat) {
@@ -161,17 +161,6 @@ void afficherContenuZIP(const char* zip_file_path) {
                 attron(A_REVERSE); // Mettre en surbrillance l'option sélectionnée
             }
             printw("%s", file_name);
-
-            if (file_info.valid & ZIP_STAT_SIZE) {
-                printw(" (%ld bytes)", (long)file_info.size);
-            }
-
-            if (is_directory(zip_file, selected_file)) {
-                printw(" [Dossier]");
-            } else {
-                printw(" [Fichier]");
-            }
-            printw("\n");
             attroff(A_REVERSE); // Annuler la surbrillance
         }
 
@@ -289,4 +278,183 @@ void affichageZIP(const char* zip_file_path) {
     }
 
     // close_zip_file(zip_file);
+}
+
+
+void extraireAvecMotDePasse(struct zip* zip_file, const char* zip_file_path, const char* selected_file, const char* password) {
+    struct zip_file* file;
+    struct zip_stat file_info;
+
+    if (!zip_file) {
+        printw("Erreur : Impossible d'ouvrir le fichier ZIP.\n");
+        return;
+    }
+
+    int index = zip_name_locate(zip_file, selected_file, 0);
+    if (index < 0) {
+        printw("Erreur : Le fichier spécifié n'a pas été trouvé dans le ZIP.\n");
+        return;
+    }
+
+    if (zip_stat_index(zip_file, index, 0, &file_info) < 0) {
+        printw("Erreur : Impossible d'obtenir les informations sur le fichier spécifié.\n");
+        return;
+    }
+
+    file = zip_fopen_index(zip_file, index, 0);
+    if (!file) {
+        printw("Erreur : Impossible d'ouvrir le fichier à extraire.\n");
+        return;
+    }
+
+    char buffer[1024];
+    int length;
+
+    while ((length = zip_fread(file, buffer, sizeof(buffer))) > 0) {
+        // Traiter les données extraites ici (par exemple, les afficher)
+        printw("%.*s", length, buffer);
+    }
+
+    zip_fclose(file);
+
+    printw("Extraction du fichier terminée.\n");
+}
+
+// void extraireAvecMotDePasse(const char* zip_file_path, const char* selected_file, const char* password) {
+//     struct zip* zip_file = open_zip_file(zip_file_path);
+//     if (!zip_file) {
+//         printw("Erreur : Impossible d'ouvrir le fichier ZIP.\n");
+//         return;
+//     }
+
+//     int file_index = zip_name_locate(zip_file, selected_file, 0);
+//     if (file_index < 0) {
+//         printw("Erreur : Le fichier spécifié n'a pas été trouvé dans le ZIP.\n");
+//         zip_close(zip_file);
+//         return;
+//     }
+// //////////////////////////////////////////////////////////////////////////////////////////////////
+//     struct zip_file* file = zip_fopen_index(zip_file, file_index, 0);
+//     if (!file) {
+//         printw("Erreur : Impossible d'ouvrir le fichier à extraire.sdjocfndsojbiodsqofiboi\n");
+//         zip_close(zip_file);
+//         return;
+//     }
+
+//     // Créer un buffer pour lire les données du fichier compressé
+//     char buffer[1024];
+
+//     // Construire le chemin complet du fichier à extraire
+//     char extracted_file_path[FILENAME_MAX];
+//     strcpy(extracted_file_path, "./");  // Chemin d'extraction actuel
+//     strcat(extracted_file_path, selected_file);
+
+//     // Ouvrir un nouveau fichier pour écrire les données extraites
+//     FILE* extracted_file = fopen(extracted_file_path, "wb");
+//     if (!extracted_file) {
+//         printw("Erreur : Impossible de créer le fichier extrait.\n");
+//         zip_fclose(file);
+//         zip_close(zip_file);
+//         return;
+//     }
+
+//     int read_bytes;
+//     while ((read_bytes = zip_fread(file, buffer, sizeof(buffer))) > 0) {
+//         // Écrire les données extraites dans le fichier extrait
+//         fwrite(buffer, 1, read_bytes, extracted_file);
+//     }
+
+//     // Fermer les fichiers et le fichier ZIP
+//     fclose(extracted_file);
+//     zip_fclose(file);
+//     zip_close(zip_file);
+
+//     printw("Le fichier a été extrait avec succès.\n");
+// }
+
+void affichageZIPpwd(const char* zip_file_path, const char* password) {
+    struct zip* zip_file = open_zip_file(zip_file_path);
+    if (!zip_file) {
+        printw("Erreur : Impossible d'ouvrir le fichier ZIP.\n");
+        return;
+    }
+
+    int num_files = zip_get_num_entries(zip_file, 0);
+    if (num_files < 0) {
+        printw("Erreur : Impossible d'obtenir le nombre de fichiers dans le ZIP.\n");
+        zip_close(zip_file);
+        return;
+    }
+
+    int highlight = 1;
+    int c;
+    int done = 0;
+
+    initscr();  // Initialiser l'interface utilisateur
+    keypad(stdscr, TRUE);  // Activer les touches spéciales
+
+    while (!done) {
+        clear();
+
+        if (highlight == 1) {
+            attron(A_REVERSE);
+        }
+        printw("Retour\n");
+        attroff(A_REVERSE);
+
+        for (int i = 0; i < num_files; i++) {
+            const char* file_name = zip_get_name(zip_file, i, 0);
+            if (!file_name) {
+                printw("Erreur : Impossible d'obtenir le nom du fichier dans le ZIP.\n");
+                zip_close(zip_file);
+                endwin();  // Fermer l'interface utilisateur
+                return;
+            }
+
+            if (i + 2 == highlight) {
+                attron(A_REVERSE);
+            }
+            printw("%s\n", file_name);
+            attroff(A_REVERSE);
+        }
+
+        c = getch();
+
+        switch (c) {
+            case KEY_UP:
+                if (highlight > 1) {
+                    highlight--;
+                }
+                break;
+            case KEY_DOWN:
+                if (highlight < num_files + 1) {
+                    highlight++;
+                }
+                break;
+            case 10:  // Touche Enter
+                if (highlight == 1) {
+                    done = 1;
+                } else {
+                    const char* selected_file = zip_get_name(zip_file, highlight - 2, 0);
+                    if (!selected_file) {
+                        printw("Erreur : Impossible d'obtenir le nom du fichier sélectionné.\n");
+                        zip_close(zip_file);
+                        endwin();  // Fermer l'interface utilisateur
+                        return;
+                    }
+
+                    clear();
+
+                    extraireAvecMotDePasse(zip_file_path, selected_file,selected_file, password);
+
+                    printw("\nAppuyez sur une touche pour continuer...");
+                    refresh();
+                    getch();
+                }
+                break;
+        }
+    }
+
+    zip_close(zip_file);
+    endwin();  // Fermer l'interface utilisateur
 }

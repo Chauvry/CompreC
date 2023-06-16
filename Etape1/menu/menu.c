@@ -18,7 +18,7 @@ void extraireParBruteforce(const char* zip_file, const char* entry_name) {
     // Code d'extraction du contenu par bruteforce
 }
 
-void sousMenuExtraction(const char* zip_file) {
+void sousMenuExtraction(const char* zip_file, const char* password) {
     int choix;
     int highlight = 1;
     int c;
@@ -63,13 +63,11 @@ void sousMenuExtraction(const char* zip_file) {
             switch (choix) {
                 case 1:
                     clear();
-                    // Afficher le contenu du ZIP
                     afficherContenuZIP(zip_file);
-
-
                     break;
                 case 2:
-                    extraireAvecMotsDePasseConnus(zip_file, NULL);
+                    clear();
+                    affichageZIPpwd(zip_file, password);
                     break;
                 case 3:
                     extraireParBruteforce(zip_file, NULL);
@@ -88,7 +86,7 @@ void sousMenuExtraction(const char* zip_file) {
     getch();
 }
 
-void afficherMenu(const char* zip_file_path) {
+void afficherMenu(const char* zip_file_path, const char* password) {
     // Initialisation de ncurses
     initscr();
     keypad(stdscr, TRUE); // Activer la prise en charge des touches spéciales
@@ -136,14 +134,14 @@ switch (choix) {
             // Afficher le contenu du ZIP
             affichageZIP(zip_file_path);
 
-            afficherMenu(zip_file_path); // Réafficher le menu principal
+            afficherMenu(zip_file_path, password); // Réafficher le menu principal
             break;
         case 2:
-            sousMenuExtraction(zip_file_path);
+            sousMenuExtraction(zip_file_path, password);
 
             // Attendre la saisie d'une touche pour revenir au menu principal
 
-            afficherMenu(zip_file_path); // Réafficher le menu principal
+            afficherMenu(zip_file_path, password); // Réafficher le menu principal
             break;
         case 3:
             clear();
