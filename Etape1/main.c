@@ -3,7 +3,7 @@
 #include "menu/menu.h"
 
 int main() {
-    const char* zip_file_path = "attrapemoi.zip";
+    const char* zip_file_path = "Desktop.zip";
 
     afficherMenu(zip_file_path);
 

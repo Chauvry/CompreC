@@ -6,12 +6,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ncurses.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 // Affiche le contenu du fichier ZIP
 void afficherContenuZIP(const char* zip_file_path);
 
 // Extraction d'un contenu ciblé du fichier ZIP
-void extraireContenuZIP(const char* zip_file_path);
+// void extraireContenuZIP(const char* zip_file_path);
+// void extraireContenuZIP(struct zip* zip_file, const char* zip_file_path) ;
+void extraireContenuZIP(struct zip* zip_file, const char* zip_file_path, const char* entry_name);
 
 // Sous-menu pour le choix du mode d'extraction (sans mot de passe, mots de passe connus, bruteforce)
 void sousMenuExtraction(struct zip* zip_file, const char* entry_name);
