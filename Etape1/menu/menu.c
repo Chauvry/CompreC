@@ -1,9 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "menu.h"
-#include <ncurses.h>
-
 void afficherContenuZIP(const char* zip_file_path) {
     struct zip* zip_file = open_zip_file(zip_file_path);
     if (!zip_file) {

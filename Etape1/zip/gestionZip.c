@@ -27,3 +27,5 @@ const char* get_file_name(struct zip* zip_file, int index) {
 void close_zip_file(struct zip* zip_file) {
     zip_close(zip_file);
 }
+
+

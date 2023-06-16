@@ -2,6 +2,10 @@
 #define MENU_H
 
 #include "../zip/gestionZip.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ncurses.h>
 
 // Affiche le contenu du fichier ZIP
 void afficherContenuZIP(const char* zip_file_path);
