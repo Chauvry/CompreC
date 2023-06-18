@@ -2,11 +2,12 @@
 #include "zip/gestionZip.h"
 #include "menu/menu.h"
 
-int main() {
-    const char* zip_file_path = "attrapemoi.zip";
-    const char* password = "password";
+int main(int argc, char *argv[]) {
 
-    afficherMenu(zip_file_path,password);
+    //Récupération du fichierZIP en argument
+    const char* zip_file_path = argv[1];   
+
+    afficherMenu(zip_file_path);
 
     return 0;
 }
