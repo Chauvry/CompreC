@@ -1,5 +1,44 @@
 #include "menu.h"
 
+
+
+int lireFichiersRepertoire(const char* repertoire, char*** fichiers) {
+    DIR* dir = opendir(repertoire);
+    if (!dir) {
+        return -1; // Erreur : impossible d'ouvrir le répertoire
+    }
+
+    int num_files = 0;
+    struct dirent* ent;
+
+    // Compter le nombre de fichiers dans le répertoire
+    while ((ent = readdir(dir)) != NULL) {
+        if (ent->d_type == DT_REG) {
+            num_files++;
+        }
+    }
+
+    rewinddir(dir);
+
+    // Allouer de la mémoire pour stocker les noms de fichiers
+    *fichiers = (char**)malloc(num_files * sizeof(char*));
+
+    int i = 0;
+    while ((ent = readdir(dir)) != NULL) {
+        if (ent->d_type == DT_REG) {
+            (*fichiers)[i] = strdup(ent->d_name);
+            i++;
+        }
+    }
+
+    closedir(dir);
+
+    return num_files;
+}
+
+
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////              MENU PRINCIPAL             ////////////////////////////////////
@@ -87,26 +126,23 @@ void sousMenuExtraction(const char* zip_file) {
 
     while (1) {
         choix = 0;
-        // Effacer l'écran
         clear();
 
-        // Afficher le sous-menu d'extraction
         printw("--- Sous-menu d'extraction ---\n");
-        if (highlight == 1) attron(A_REVERSE); // Mettre en surbrillance l'option sélectionnée
+        if (highlight == 1) attron(A_REVERSE);
         printw("1. Extraire sans mot de passe\n");
-        attroff(A_REVERSE); // Annuler la surbrillance
+        attroff(A_REVERSE);
         if (highlight == 2) attron(A_REVERSE);
         printw("2. Extraire avec mots de passe connus\n");
         attroff(A_REVERSE);
         if (highlight == 3) attron(A_REVERSE);
-        printw("3. Extraire par bruteforce\n");
+        printw("3. Extraire par brute force\n");
         attroff(A_REVERSE);
         if (highlight == 4) attron(A_REVERSE);
         printw("4. Retour\n");
         attroff(A_REVERSE);
         refresh();
 
-        // Lire l'entrée de l'utilisateur
         c = getch();
         switch (c) {
             case KEY_UP:
@@ -119,6 +155,7 @@ void sousMenuExtraction(const char* zip_file) {
                 choix = highlight;
                 break;
         }
+        
         if (choix != 0) {
             clear();
             switch (choix) {
@@ -134,29 +171,90 @@ void sousMenuExtraction(const char* zip_file) {
                     scanw("%ms", &password);
                     noecho();
                     affichage_extraction_avec_password(zip_file, password);
-                    free((void*)password); // Libérer la mémoire allouée par scanw
+                    free((void*)password);
                     break;
                 case 3:
                     clear();
-                    const char* bruteForce_path;
-                    printw("Entrez le chemin du dictionnaire de bruteforce : ");
-                    echo();
-                    scanw("%ms", &bruteForce_path);
-                    noecho();
-                    affichage_extraction_brute_force(zip_file, bruteForce_path);
-                    free((void*)bruteForce_path); // Libérer la mémoire allouée par scanw
+                    printw("Sous-menu Brute force\n");
+                    printw("Sélectionnez le dictionnaire de brute force :\n");
+                    refresh();
+
+                    char* dictionnaire_path = malloc(256);  // Allouer de la mémoire pour stocker le chemin du dictionnaire
+                    getcwd(dictionnaire_path, 256);  // Récupérer le répertoire de travail actuel
+
+                    // Lire les fichiers du répertoire "dictionnaire/"
+                    char** fichiers_dictionnaire;
+                    int num_files = lireFichiersRepertoire("dictionnaire/", &fichiers_dictionnaire);
+
+                    if (num_files < 0) {
+                        printw("Erreur : Impossible de lire les fichiers du répertoire dictionnaire.\n");
+                        free(dictionnaire_path);
+                        break;
+                    }
+
+                    int highlight_brute_force = 1;
+                    int done_brute_force = 0;
+
+                    while (!done_brute_force) {
+                        clear();
+
+                        if (highlight_brute_force == 1) {
+                            attron(A_REVERSE);
+                        }
+                        printw("Retour\n");
+                        attroff(A_REVERSE);
+
+                        for (int i = 0; i < num_files; i++) {
+                            if (i + 2 == highlight_brute_force) {
+                                attron(A_REVERSE);
+                            }
+                            printw("%s\n", fichiers_dictionnaire[i]);
+                            attroff(A_REVERSE);
+                        }
+
+                        c = getch();
+
+                        switch (c) {
+                            case KEY_UP:
+                                if (highlight_brute_force > 1) {
+                                    highlight_brute_force--;
+                                }
+                                break;
+                            case KEY_DOWN:
+                                if (highlight_brute_force < num_files + 1) {
+                                    highlight_brute_force++;
+                                }
+                                break;
+                            case 10: // Touche Enter
+                                if (highlight_brute_force == 1) {
+                                    done_brute_force = 1;
+                                } else {
+                                    const char* dictionary_name = fichiers_dictionnaire[highlight_brute_force - 2];
+                                    snprintf(dictionnaire_path + strlen(dictionnaire_path), 256 - strlen(dictionnaire_path), "/dictionnaire/%s", dictionary_name);
+                                    clear();
+                                    affichage_extraction_brute_force(zip_file, dictionnaire_path);
+                                    // printw("\nAppuyez sur une touche pour continuer...");
+                                    refresh();
+                                    getch();
+                                    done_brute_force = 1;
+                                }
+                                break;
+                        }
+                    }
+
+                    free(dictionnaire_path);
+                    for (int i = 0; i < num_files; i++) {
+                        free(fichiers_dictionnaire[i]);
+                    }
+                    free(fichiers_dictionnaire);
+
                     break;
                 case 4:
                     return;
             }
         }
-
-
-
-
     }
 
-    // Attendre la saisie d'une touche pour revenir au sous-menu
     printw("\nAppuyez sur une touche pour continuer...");
     refresh();
     getch();
