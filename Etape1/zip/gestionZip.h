@@ -10,7 +10,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-
+#include <ctype.h>
+#include <zlib.h>
+#include <openssl/evp.h>
 /**
  * Ouvre le fichier ZIP.
  *
@@ -125,5 +127,6 @@ void affichage_extraction_brute_force(const char* zip_file_path, const char* dic
  * dictionary_path : Chemin du dictionnaire pour la méthode brute force.
  */
 void extraction_brute_force(struct zip* zip_file, const char* zip_file_path, const char* selected_file, const char* dictionary_path);
+
 
 #endif /* GESTIONZIP_H */

@@ -3,6 +3,7 @@
 
 #include "../zip/gestionZip.h"
 #include <ncurses.h>
+#include <dirent.h>
 
 // Sous-menu pour le choix du mode d'extraction (sans mot de passe, mots de passe connus, bruteforce)
 void sousMenuExtraction(const char* zip_file);

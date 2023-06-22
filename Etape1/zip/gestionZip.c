@@ -1,5 +1,8 @@
 #include "gestionZip.h"
 
+#define DEFAULT_PASSWORD "default_password"
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////               Ouverture ZIP                      /////////////////////////////////
@@ -83,6 +86,82 @@ void close_zip_file(struct zip* zip_file) {
         printf("Failed to close the zip file.\n");
     }
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////               EXTRAT FUNCTION                    /////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+int extract_zip(const char* zip_path, const char* selected_file, const char* password) {
+    // Ouvrir le fichier zip
+    struct zip* archive = open_zip_file(zip_path);
+    if (!archive) {
+        printf("Impossible d'ouvrir le fichier zip.\n");
+        return -1;
+    }
+    
+    // Tester le mot de passe par défaut
+    int default_password = 1;
+    if (zip_set_default_password(archive, DEFAULT_PASSWORD) < 0) {
+        default_password = 0;
+    }
+    
+    // Vérifier si le mot de passe est le mot de passe par défaut
+    if (default_password) {
+        printf("Le mot de passe par défaut est valide.\n");
+    } else {
+        printf("Le mot de passe par défaut n'est pas valide.\n");
+        // Vérifier le mot de passe donné
+        if (zip_set_default_password(archive, password) < 0) {
+            printf("Mot de passe incorrect.\n");
+            zip_close(archive);
+            return -1;
+        } else {
+            printf("Mot de passe valide. Modification du mot de passe par défaut.\n");
+            if (zip_set_default_password(archive, password) < 0) {
+                printf("Impossible de modifier le mot de passe par défaut.\n");
+                zip_close(archive);
+                return -1;
+            }
+        }
+    }
+    
+    // Extraire le fichier sélectionné
+    struct zip_file* file = zip_fopen(archive, selected_file, 0);
+    if (!file) {
+        printf("Impossible d'extraire le fichier %s.\n", selected_file);
+        zip_close(archive);
+        return -1;
+    }
+    
+    // Lire et écrire le contenu du fichier
+    char buffer[1024];
+    FILE* output = fopen(selected_file, "wb");
+    if (!output) {
+        printf("Impossible de créer le fichier de sortie.\n");
+        zip_fclose(file);
+        zip_close(archive);
+        return -1;
+    }
+    
+    int read_bytes;
+    while ((read_bytes = zip_fread(file, buffer, sizeof(buffer))) > 0) {
+        fwrite(buffer, read_bytes, 1, output);
+    }
+    
+    // Fermer les fichiers et libérer les ressources
+    fclose(output);
+    zip_fclose(file);
+    zip_close(archive);
+    
+    printf("Extraction réussie du fichier %s.\n", selected_file);
+    return 0;
+}
+
+
+
 
 
 
@@ -582,7 +661,6 @@ void extraction_avec_password(struct zip* zip_file, const char* zip_file_path, c
     
 }
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////                EXTRACTION AVEC BF             ////////////////////////////////////
@@ -591,7 +669,6 @@ void extraction_avec_password(struct zip* zip_file, const char* zip_file_path, c
 
 
 void extraction_brute_force(struct zip* zip_file, const char* zip_file_path, const char* selected_file, const char* dictionary_path) {
-    struct zip_file* file;
     struct zip_stat file_info;
 
     if (!zip_file) {
@@ -599,7 +676,7 @@ void extraction_brute_force(struct zip* zip_file, const char* zip_file_path, con
         return;
     }
 
-    int index = zip_name_locate(zip_file, selected_file, 0);
+    zip_uint64_t index = zip_name_locate(zip_file, selected_file, 0);
     if (index < 0) {
         printw("Erreur : Le fichier spécifié n'a pas été trouvé dans le ZIP.\n");
         return;
@@ -619,51 +696,79 @@ void extraction_brute_force(struct zip* zip_file, const char* zip_file_path, con
         return;
     }
 
-    char password[256];
 
-    while (fgets(password, sizeof(password), dictionary_file)) {
-        // Supprimer le saut de ligne à la fin du mot de passe
-        char* newline = strchr(password, '\n');
-        if (newline) {
-            *newline = '\0';
+    char *password =malloc(sizeof(char*)*11);
+    size_t g=10;
+    while (getline(&password,&g,dictionary_file)!=0) {
+        int i =0;
+        printw("%s\n", password);
+        
+        while(password[i] != '\n' && password[i]){
+            i++;
+
         }
-
+        password[i] ='\0';
         // Tenter d'ouvrir le fichier avec le mot de passe actuel
-        file = zip_fopen_index_encrypted(zip_file, index, 0, password);
+        struct zip_file* file = zip_fopen_index_encrypted(zip_file, index, 0, password);
         if (file) {
-            // Créer le fichier de sortie
-            int output_fd = open(selected_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (output_fd < 0) {
+
+            FILE* output_file = fopen(selected_file, "wb");
+            if (!output_file) {
                 printw("Erreur lors de la création du fichier de sortie pour le contenu '%s'.\n", selected_file);
                 zip_fclose(file);
                 fclose(dictionary_file);
                 return;
             }
 
-            // Lire le contenu du fichier compressé et écrire dans le fichier de sortie
+            // Lire et écrire le contenu du fichier décrypté
             while ((length = zip_fread(file, buffer, sizeof(buffer))) > 0) {
-                if (write(output_fd, buffer, length) < 0) {
+                if (fwrite(buffer, 1, length, output_file) != length) {
                     printw("Erreur lors de l'écriture du contenu '%s' extrait.\n", selected_file);
-                    close(output_fd);
+                    fclose(output_file);
                     zip_fclose(file);
                     fclose(dictionary_file);
                     return;
                 }
             }
 
-            // Fermer les fichiers
-            close(output_fd);
+            fclose(output_file);
             zip_fclose(file);
 
-            // Afficher le message d'extraction réussie avec le mot de passe utilisé
+            // Vérifier si le fichier est vide
+            FILE* verify_file = fopen(selected_file, "rb");
+            fseek(verify_file, 0, SEEK_END);
+            if (ftell(verify_file) == 0) {
+                fclose(verify_file);
+                remove(selected_file);
+                continue; // Passer au mot de passe suivant si le fichier est vide
+            }
+            
+            // Vérifier si des caractères bizarres ont été lus
+            // fseek(verify_file, 0, SEEK_SET);
+            // int c;
+            // int is_valid = 1;
+            // while ((c = fgetc(verify_file)) != EOF) {
+            //     if (!isprint(c)) {
+            //         is_valid = 0;
+            //         break;
+            //     }
+            // }
+            // fclose(verify_file);
+
+            // if (!is_valid) {
+            //     remove(selected_file);
+            //     continue; // Passer au mot de passe suivant si des caractères bizarres ont été lus
+            // }
+
             printw("Extraction du contenu '%s' terminée avec le mot de passe : %s\n", selected_file, password);
+            
             fclose(dictionary_file);
             return;
         }
     }
+    
 
     // Si aucun mot de passe du dictionnaire ne correspond, afficher un message d'erreur
     printw("Erreur : Aucun mot de passe du dictionnaire ne correspond au fichier spécifié.\n");
     fclose(dictionary_file);
 }
-
