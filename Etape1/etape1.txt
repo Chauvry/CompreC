@@ -1,4 +1,0 @@
-Ouvrir le fichier
-lire le contenu
-avec mot de passe connus
-et bruteforce

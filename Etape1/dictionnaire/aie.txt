@@ -1,0 +1,17 @@
+english
+word
+world
+user
+mouse
+computer
+azerty
+qwerty
+wow
+gemme
+yes
+no
+name
+length
+highlight
+height
+password
