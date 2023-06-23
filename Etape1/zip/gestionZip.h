@@ -12,7 +12,6 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <zlib.h>
-#include <openssl/evp.h>
 /**
  * Ouvre le fichier ZIP.
  *
@@ -127,6 +126,16 @@ void affichage_extraction_brute_force(const char* zip_file_path, const char* dic
  * dictionary_path : Chemin du dictionnaire pour la méthode brute force.
  */
 void extraction_brute_force(struct zip* zip_file, const char* zip_file_path, const char* selected_file, const char* dictionary_path);
+
+/**
+ * Ajoute un fichier existant au sein d'un fichier ZIP.
+ *
+ * @param zip_file_path   Chemin du fichier ZIP dans lequel ajouter le fichier.
+ * @param fichier_path    Chemin du fichier à ajouter au fichier ZIP.
+ * @return 0 si l'ajout du fichier a réussi, une valeur négative en cas d'erreur.
+ */
+int inclure_fichier_local_zip(const char* zip_file_path, const char* local_file_path);
+
 
 
 #endif /* GESTIONZIP_H */
