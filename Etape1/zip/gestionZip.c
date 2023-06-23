@@ -89,7 +89,7 @@ void close_zip_file(struct zip* zip_file) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////               EXTRAT FUNCTION                    /////////////////////////////////
+//////////////////               EXTRACT FUNCTION                   /////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -102,34 +102,8 @@ int extract_zip(const char* zip_path, const char* selected_file, const char* pas
         return -1;
     }
     
-    // Tester le mot de passe par défaut
-    int default_password = 1;
-    if (zip_set_default_password(archive, DEFAULT_PASSWORD) < 0) {
-        default_password = 0;
-    }
-    
-    // Vérifier si le mot de passe est le mot de passe par défaut
-    if (default_password) {
-        printf("Le mot de passe par défaut est valide.\n");
-    } else {
-        printf("Le mot de passe par défaut n'est pas valide.\n");
-        // Vérifier le mot de passe donné
-        if (zip_set_default_password(archive, password) < 0) {
-            printf("Mot de passe incorrect.\n");
-            zip_close(archive);
-            return -1;
-        } else {
-            printf("Mot de passe valide. Modification du mot de passe par défaut.\n");
-            if (zip_set_default_password(archive, password) < 0) {
-                printf("Impossible de modifier le mot de passe par défaut.\n");
-                zip_close(archive);
-                return -1;
-            }
-        }
-    }
-    
     // Extraire le fichier sélectionné
-    struct zip_file* file = zip_fopen(archive, selected_file, 0);
+    struct zip_file* file = zip_fopen_encrypted(archive, selected_file, 0, password);
     if (!file) {
         printf("Impossible d'extraire le fichier %s.\n", selected_file);
         zip_close(archive);
@@ -159,8 +133,6 @@ int extract_zip(const char* zip_path, const char* selected_file, const char* pas
     printf("Extraction réussie du fichier %s.\n", selected_file);
     return 0;
 }
-
-
 
 
 
@@ -441,7 +413,14 @@ void affichage_extraction_avec_password(const char* zip_file_path, const char* p
 
                     clear();
 
-                    extraction_avec_password(zip_file, zip_file_path, selected_file, password);
+                    // Appeler la fonction d'extraction avec mot de passe
+                    int extraction_result = extract_zip(zip_file_path, selected_file, password);
+
+                    if (extraction_result != 0) {
+                        printw("Erreur lors de l'extraction du fichier %s.\n", selected_file);
+                    } else {
+                        printw("Extraction réussie du fichier %s.\n", selected_file);
+                    }
 
                     printw("\nAppuyez sur une touche pour continuer...");
                     refresh();
@@ -454,7 +433,6 @@ void affichage_extraction_avec_password(const char* zip_file_path, const char* p
     close_zip_file(zip_file);
     endwin();  // Fermer l'interface utilisateur
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -602,65 +580,6 @@ void extraction_sans_password(struct zip* zip_file, const char* zip_file_path, c
     printw("Extraction du contenu '%s' terminée.\n", selected_file);
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////               EXTRACTION AVEC PWD               /////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void extraction_avec_password(struct zip* zip_file, const char* zip_file_path, const char* selected_file, const char* password) {
-    struct zip_file* file; // Fichier ZIP à extraire
-    struct zip_stat file_info; // Informations sur le fichier
-
-    if (!zip_file) {
-        printw("Erreur : Impossible d'ouvrir le fichier ZIP.\n");
-        return;
-    }
-
-    int index = zip_name_locate(zip_file, selected_file, 0); // Recherche de l'index du fichier dans le ZIP
-    if (index < 0) {
-        printw("Erreur : Le fichier spécifié n'a pas été trouvé dans le ZIP.\n");
-        return;
-    }
-
-    if (zip_stat_index(zip_file, index, 0, &file_info) < 0) {
-        printw("Erreur : Impossible d'obtenir les informations sur le fichier spécifié.\n");
-        return;
-    }
-
-    char buffer[1024]; // Tampon de lecture
-    int length;
-
-    file = zip_fopen_index_encrypted(zip_file, index, 0, password); // Ouverture du fichier à extraire avec le mot de passe
-    if (!file) {
-        printw("Erreur : Impossible d'ouvrir le fichier à extraire avec le mot de passe spécifié.\n");
-        return;
-    }
-
-    int output_fd = open(selected_file, O_WRONLY | O_CREAT | O_TRUNC, 0644); // Création du fichier de sortie
-    if (output_fd < 0) {
-        printw("Erreur lors de la création du fichier de sortie pour le contenu '%s'.\n", selected_file);
-        zip_fclose(file);
-        return;
-    }
-
-    while ((length = zip_fread(file, buffer, sizeof(buffer))) > 0) {
-        if (write(output_fd, buffer, length) < 0) {
-            printw("Erreur lors de l'écriture du contenu '%s' extrait.\n", selected_file);
-            close(output_fd);
-            zip_fclose(file);
-            return;
-        }
-    }
-
-    close(output_fd);
-    zip_fclose(file);
-    printw("Extraction du contenu '%s' terminée.\n", selected_file);
-
-    
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////                EXTRACTION AVEC BF             ////////////////////////////////////
@@ -700,75 +619,75 @@ void extraction_brute_force(struct zip* zip_file, const char* zip_file_path, con
     char *password =malloc(sizeof(char*)*11);
     size_t g=10;
     while (getline(&password,&g,dictionary_file)!=0) {
-        int i =0;
-        printw("%s\n", password);
-        
+        int i =0;       
         while(password[i] != '\n' && password[i]){
             i++;
 
         }
         password[i] ='\0';
-        // Tenter d'ouvrir le fichier avec le mot de passe actuel
-        struct zip_file* file = zip_fopen_index_encrypted(zip_file, index, 0, password);
-        if (file) {
-
-            FILE* output_file = fopen(selected_file, "wb");
-            if (!output_file) {
-                printw("Erreur lors de la création du fichier de sortie pour le contenu '%s'.\n", selected_file);
-                zip_fclose(file);
-                fclose(dictionary_file);
-                return;
-            }
-
-            // Lire et écrire le contenu du fichier décrypté
-            while ((length = zip_fread(file, buffer, sizeof(buffer))) > 0) {
-                if (fwrite(buffer, 1, length, output_file) != length) {
-                    printw("Erreur lors de l'écriture du contenu '%s' extrait.\n", selected_file);
-                    fclose(output_file);
-                    zip_fclose(file);
-                    fclose(dictionary_file);
-                    return;
-                }
-            }
-
-            fclose(output_file);
-            zip_fclose(file);
-
-            // Vérifier si le fichier est vide
-            FILE* verify_file = fopen(selected_file, "rb");
-            fseek(verify_file, 0, SEEK_END);
-            if (ftell(verify_file) == 0) {
-                fclose(verify_file);
-                remove(selected_file);
-                continue; // Passer au mot de passe suivant si le fichier est vide
-            }
-            
-            // Vérifier si des caractères bizarres ont été lus
-            // fseek(verify_file, 0, SEEK_SET);
-            // int c;
-            // int is_valid = 1;
-            // while ((c = fgetc(verify_file)) != EOF) {
-            //     if (!isprint(c)) {
-            //         is_valid = 0;
-            //         break;
-            //     }
-            // }
-            // fclose(verify_file);
-
-            // if (!is_valid) {
-            //     remove(selected_file);
-            //     continue; // Passer au mot de passe suivant si des caractères bizarres ont été lus
-            // }
-
+        if(!extract_zip(zip_file_path, selected_file, password))
+        {
+            fclose(dictionary_file);
             printw("Extraction du contenu '%s' terminée avec le mot de passe : %s\n", selected_file, password);
             
-            fclose(dictionary_file);
             return;
         }
+
     }
     
 
     // Si aucun mot de passe du dictionnaire ne correspond, afficher un message d'erreur
     printw("Erreur : Aucun mot de passe du dictionnaire ne correspond au fichier spécifié.\n");
     fclose(dictionary_file);
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////               AJOUT FICHIER LOCAL             ////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+int inclure_fichier_local_zip(const char* zip_file_path, const char* fichier_path) {
+   // Ouvrir le fichier ZIP en mode lecture/écriture
+    zip_t* zip = zip_open(zip_file_path, ZIP_CREATE | ZIP_EXCL, NULL);
+
+    if (zip == NULL) {
+        printf("Erreur : Impossible d'ouvrir le fichier ZIP.\n");
+        return -1;
+    }
+
+    // Lire le contenu du fichier à ajouter
+    FILE* fichier = fopen(fichier_path, "rb");
+    if (fichier == NULL) {
+        printf("Erreur : Impossible de lire le fichier à ajouter.\n");
+        zip_close(zip);
+        return -1;
+    }
+
+    fseek(fichier, 0, SEEK_END);
+    long taille_fichier = ftell(fichier);
+    fseek(fichier, 0, SEEK_SET);
+
+    char* contenu_fichier = malloc(taille_fichier);
+    fread(contenu_fichier, 1, taille_fichier, fichier);
+
+    fclose(fichier);
+
+    // Ajouter le fichier au fichier ZIP
+    zip_source_t* source = zip_source_buffer(zip, contenu_fichier, taille_fichier, 0);
+    if (source == NULL || zip_file_add(zip, fichier_path, source, 0) < 0) {
+        printf("Erreur : Impossible d'ajouter le fichier au fichier ZIP.\n");
+        zip_source_free(source);
+        zip_close(zip);
+        free(contenu_fichier);
+        return -1;
+    }
+
+    // Fermer le fichier ZIP
+    zip_close(zip);
+    free(contenu_fichier);
+
+    return 0;
 }
