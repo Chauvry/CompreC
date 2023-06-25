@@ -264,12 +264,13 @@ void affichage_extraction_sans_password(const char* zip_file_path) {
         return;
     }
 
-    printw("Contenu du fichier ZIP :\n");
 
     int highlight = 1; // Option sélectionnée (mise en surbrillance)
     int c;
-    const char* selected_file = NULL; // Nom du fichier sélectionné
     int extraction_done = 0; // Indicateur d'extraction terminée
+
+    initscr();  // Initialiser l'interface utilisateur
+    keypad(stdscr, TRUE);  // Activer les touches spéciales
 
     while (!extraction_done) {
         // Effacer l'écran
@@ -285,14 +286,19 @@ void affichage_extraction_sans_password(const char* zip_file_path) {
         // Afficher le contenu du ZIP
         for (int i = 0; i < num_files; i++) {
             const char* file_name = get_file_name(zip_file, i); // Récupération du nom du fichier
-            struct zip_stat file_info;
-            zip_stat_init(&file_info);
-            zip_stat(zip_file, file_name, 0, &file_info); // Obtention des informations sur le fichier
-
+            if (!file_name) {
+                printw("Erreur : Impossible d'obtenir le nom du fichier dans le ZIP.\n");
+                zip_close(zip_file);
+                endwin();  // Fermer l'interface utilisateur
+                return;
+            }
+            
+            
+            
             if (i + 2 == highlight) {
                 attron(A_REVERSE); // Mettre en surbrillance l'option sélectionnée
             }
-            printw("%s", file_name);
+            printw("%s\n", file_name);
             attroff(A_REVERSE); // Annuler la surbrillance
         }
 
@@ -314,23 +320,30 @@ void affichage_extraction_sans_password(const char* zip_file_path) {
                     // Option "Retour" sélectionnée
                     extraction_done = 1;
                 } else {
-                    selected_file = get_file_name(zip_file, highlight - 2); // Sélection du fichier à extraire
-                    extraction_done = 1; // Extraction effectuée, sortir de la boucle
+                    const char* selected_file = zip_get_name(zip_file, highlight - 2, 0);
+                    if (!selected_file) {
+                        printw("Erreur : Impossible d'obtenir le nom du fichier sélectionné.\n");
+                        zip_close(zip_file);
+                        endwin();  // Fermer l'interface utilisateur
+                        return;}
+                    else{
+                        clear();
+                            extraction_sans_password(zip_file, zip_file_path, selected_file); // Extraction du fichier sélectionné
+
+                            // Attendre la saisie d'une touche pour continuer
+                            printw("\nAppuyez sur une touche pour continuer...");
+                            refresh();
+                            getch();
+                    }  
+                    break;
                 }
-                break;
-        }
     }
 
-    if (selected_file) {
-        extraction_sans_password(zip_file, zip_file_path, selected_file); // Extraction du fichier sélectionné
 
-        // Attendre la saisie d'une touche pour continuer
-        printw("\nAppuyez sur une touche pour continuer...");
-        refresh();
-        getch();
     }
 
-    close_zip_file(zip_file); // Fermeture du fichier ZIP
+    close_zip_file(zip_file);
+    endwin();  // Fermer l'interface utilisateur
 }
 
 
