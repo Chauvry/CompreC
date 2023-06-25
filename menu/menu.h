@@ -17,4 +17,7 @@ void afficherMenu(const char* zip_file_path);
 // Sous-menu pour le choix du mode d'extraction (sans mot de passe, mots de passe connus, bruteforce)
 void sousMenuAjouterFichierLocal(const char* zip_file);
 
+// affichage d'information sur le cas d'utilisation du programme
+void info();
+
 #endif

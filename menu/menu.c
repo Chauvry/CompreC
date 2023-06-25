@@ -70,6 +70,9 @@ void afficherMenu(const char* zip_file_path) {
         printw("3. Ajouter un fichier local\n");
         attroff(A_REVERSE);
         if (highlight == 4) attron(A_REVERSE);
+        printw("3. Help\n");
+        attroff(A_REVERSE);
+        if (highlight == 5) attron(A_REVERSE);
         printw("4. Quitter\n");
         attroff(A_REVERSE);
         refresh();
@@ -81,7 +84,7 @@ void afficherMenu(const char* zip_file_path) {
                 if (highlight > 1) highlight--;
                 break;
             case KEY_DOWN:
-                if (highlight < 4) highlight++;
+                if (highlight < 5) highlight++;
                 break;
             case 10: // Touche Enter
                 choix = highlight;
@@ -112,6 +115,12 @@ void afficherMenu(const char* zip_file_path) {
             afficherMenu(zip_file_path); // Réafficher le menu principal
             break;
         case 4:
+            clear();
+            info();
+
+            afficherMenu(zip_file_path); // Réafficher le menu principal
+            break;
+        case 5:
             clear();
             // Quitter le programme
             printw("Au revoir !\n");
@@ -409,4 +418,34 @@ void sousMenuAjouterFichierLocal(const char* zip_file_path) {
             sousMenuAjouterFichierLocal(zip_file_path); // Réafficher le sous-menu
             break;
     }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////          INFORMATION          //////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void info()
+{
+    initscr();
+    cbreak();
+    noecho();
+
+    // Affichage du long message
+    const char* message = "Voici un message d'aide d'utilisation pour le programme :\n"
+                          "Pour utiliser vos propres dictionnaires et/ou wordlists, merci de les ajouter au dossier 'dictionnaire'.\n"
+                          "Merci de mettre le fichier ZIP à la racine du programme exécutable.\n"
+                          "Pour plus de renseignements, veuillez contacter l'auteur de ce programme.\n"
+                          "Appuyez sur une touche pour quitter...";
+
+    printw("%s", message);
+    refresh();
+
+    // Attendre une entrée utilisateur
+    getch();
+
+    // Nettoyage et sortie de ncurses
+    endwin();
 }
