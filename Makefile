@@ -1,7 +1,7 @@
 NAME = CompreC
 
 SRCS =  menu/menu.c                           \
-        zip/main.c                            \
+        main.c                                \
         zip/gestionZip.c                      \
 
 OBJS = $(SRCS:.c=.o)
@@ -13,13 +13,16 @@ RM = rm -f
 all: $(NAME)
 
 $(NAME): $(OBJS)
-    $(CC) -o $(NAME) $(OBJS)
+	$(CC) -o $(NAME) $(OBJS) -lncurses -lzip
+
+$(OBJS): %.o: %.c
+	$(CC) -c $< -o $@
 
 clean:
-    $(RM) $(OBJS)
+	$(RM) $(OBJS)
 
 fclean: clean
-    $(RM) $(NAME)
+	$(RM) $(NAME)
 
 re: fclean all
 

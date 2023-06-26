@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "zip/gestionZip.h"
 #include "menu/menu.h"
 
