@@ -19,10 +19,8 @@ L'utilisation de la commande système est strictement interdite.
 
 Pour gérer les archives zip, CompréC utilise la bibliothèque libzip. Pour améliorer l'expérience utilisateur, vous devez choisir l'une des bibliothèques suivantes pour aider avec l'interface:
 
-- getopt
 - ncurses
-- GTK
-- SDL
+
 
 ## Comment installer
 
